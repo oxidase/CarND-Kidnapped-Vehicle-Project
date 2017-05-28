@@ -76,31 +76,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<Map::single_landmark_s> &landmarks, const std::vector<LandmarkObs>& observations, const Map &map_landmarks)
+void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations)
 {
     // TODO: Find the predicted measurement that is closest to each observed measurement and assign the
     //   observed measurement to this particular landmark.
     // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
     //   implement this method and use it as a helper during the updateWeights phase.
 
-    if (map_landmarks.landmark_list.empty())
-        return;
-
-    for (auto &observation : observations)
-    {
-        auto nearest_neighbor = map_landmarks.landmark_list.begin();
-        auto min_dist = dist(nearest_neighbor->x_f, nearest_neighbor->y_f, observation.x, observation.y);
-        for (auto it = map_landmarks.landmark_list.begin() + 1; it != map_landmarks.landmark_list.end(); ++it)
-        {
-            auto d = dist(it->x_f, it->y_f, observation.x, observation.y);
-            if (d < min_dist)
-            {
-                nearest_neighbor = it;
-                min_dist = d;
-            }
-        }
-        landmarks.push_back(*nearest_neighbor);
-    }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -145,7 +127,24 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
         // Find nearest landmarks association
         std::vector<Map::single_landmark_s> nearest_landmarks;
-        dataAssociation(nearest_landmarks, global_observations, map_landmarks);
+        if (!map_landmarks.landmark_list.empty())
+        {
+            for (auto &observation : global_observations)
+            {
+                auto nearest_neighbor = map_landmarks.landmark_list.begin();
+                auto min_dist = dist(nearest_neighbor->x_f, nearest_neighbor->y_f, observation.x, observation.y);
+                for (auto it = map_landmarks.landmark_list.begin() + 1; it != map_landmarks.landmark_list.end(); ++it)
+                {
+                    auto d = dist(it->x_f, it->y_f, observation.x, observation.y);
+                    if (d < min_dist)
+                    {
+                        nearest_neighbor = it;
+                        min_dist = d;
+                    }
+                }
+                nearest_landmarks.push_back(*nearest_neighbor);
+            }
+        }
 
         // Compute particle weight
         weights[i] = 1.;
